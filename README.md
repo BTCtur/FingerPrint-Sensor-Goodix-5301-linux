@@ -1,4 +1,4 @@
-# goodix-5301-linux
+# FingerPrint-Sensor-Goodix-5301-linux
 
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPL_v2.1-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-orange.svg)]()
@@ -47,8 +47,8 @@ Laptops confirmed working:
 The repository includes a pre-compiled 64-bit x86_64 library. To install:
 
 ```bash
-git clone https://github.com/<username>/goodix-5301-linux.git
-cd goodix-5301-linux
+git clone https://github.com/<username>/FingerPrint-Sensor-Goodix-5301-linux.git
+cd FingerPrint-Sensor-Goodix-5301-linux
 sudo ./install.sh
 ```
 
