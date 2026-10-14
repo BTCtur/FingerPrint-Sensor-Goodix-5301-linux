@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output images and test captures
+*.pgm
+*.png
+test_out/
+
+# C / build artifacts
+build/
+*.o
+*.a
+*.so*
+!bin/*.so*
+
+# System / editor files
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/

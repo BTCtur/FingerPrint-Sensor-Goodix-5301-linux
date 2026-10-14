@@ -1,0 +1,12 @@
+# Goodix 27c6:5301 / 27c6:5201 fingerprint sensor
+# - Grants dialout group access for standalone tools
+# - Keeps sensor active (prevents USB autosuspend freeze)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="5301", MODE="0660", GROUP="dialout", ATTR{power/control}="on"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="5201", MODE="0660", GROUP="dialout", ATTR{power/control}="on"
+
+# The sensor enumerates as a CDC ACM modem; prevent ModemManager from probing it
+# (AT probes generate stale input in the sensor's receive buffer).
+ACTION!="remove", SUBSYSTEM=="usb", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="5301", ENV{ID_MM_DEVICE_IGNORE}="1"
+ACTION!="remove", SUBSYSTEM=="tty", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="5301", ENV{ID_MM_DEVICE_IGNORE}="1"
+ACTION!="remove", SUBSYSTEM=="usb", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="5201", ENV{ID_MM_DEVICE_IGNORE}="1"
+ACTION!="remove", SUBSYSTEM=="tty", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="5201", ENV{ID_MM_DEVICE_IGNORE}="1"

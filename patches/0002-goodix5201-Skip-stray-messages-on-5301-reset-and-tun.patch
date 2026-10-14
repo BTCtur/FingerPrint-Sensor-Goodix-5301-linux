@@ -1,0 +1,133 @@
+From 73aefdebbed81d078465f1eab44db6a075db4f36 Mon Sep 17 00:00:00 2001
+From: local <local@localhost>
+Date: Wed, 14 Oct 2026 23:19:05 +0300
+Subject: [PATCH 2/3] goodix5201: Skip stray messages on 5301 reset and tune
+ ridge thresholds
+
+---
+ libfprint/drivers/goodix5201.c | 60 ++++++++++++++++++++++++----------
+ 1 file changed, 43 insertions(+), 17 deletions(-)
+
+diff --git a/libfprint/drivers/goodix5201.c b/libfprint/drivers/goodix5201.c
+index d19c9e4..7ac2175 100644
+--- a/libfprint/drivers/goodix5201.c
++++ b/libfprint/drivers/goodix5201.c
+@@ -49,6 +49,7 @@
+ #define GDX_EP_IN 0x81
+ #define GDX_CHUNK 64
+ #define GDX_MAX_EMPTY 10
++#define GDX_MAX_STRAY 12
+ 
+ /* Stale input (e.g. replies to a modem probe sent through the cdc_acm tty
+  * while the device was not in use) is drained before talking to the MCU. */
+@@ -92,11 +93,11 @@
+ #define GDX_FINGER_OFF 25.0
+ 
+ /* Band-pass "ridge energy" of a single frame (see gdx_ridge_energy()):
+-* an empty sensor measures ~15, a finger 69-99. Used to make sure the
+-* background really is an empty sensor, and that a touch has ridges. */
++* an empty sensor measures ~15 on 5201, ~25 on 5301, a finger 64-99.
++* Used to make sure the background really is an empty sensor, and that a touch has ridges. */
+ #define GDX_RIDGE_CROP 4
+-#define GDX_RIDGE_EMPTY 25.0
+-#define GDX_RIDGE_FINGER 40.0
++#define GDX_RIDGE_EMPTY 30.0
++#define GDX_RIDGE_FINGER 42.0
+ #define GDX_CAPTURE_MAX 6
+ #define GDX_POLL_DELAY 30
+ #define GDX_IDLE_DELAY 200
+@@ -137,6 +138,7 @@ struct _FpiDeviceGoodix5201
+   /* Message reassembly */
+   GByteArray *rx;
+   guint       rx_empty;
++  guint       stray;
+   guint       drained;
+ 
+   guint16    *background;
+@@ -365,6 +367,26 @@ gdx_cmd_done (FpiDeviceGoodix5201 *self, const guint8 *payload, gsize len, GErro
+   callback (self, payload, len, error);
+ }
+ 
++/* A valid message that does not belong to the command in flight, e.g. the
++ * 27c6:5301 answers RESET with an extra 0xa2 message after the ACK, or a late
++ * ACK of the previous command. Skip a few of them. */
++static void
++gdx_stray_message (FpiDeviceGoodix5201 *self, guint8 cmd, gsize payload_len, guint timeout)
++{
++  if (++self->stray > GDX_MAX_STRAY)
++    {
++      gdx_cmd_done (self, NULL, 0,
++                    fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
++                                              "Too many stray messages while waiting for 0x%02x (last 0x%02x)",
++                                              self->cmd_byte, cmd));
++      return;
++    }
++
++  fp_dbg ("Skipping stray message 0x%02x (%" G_GSIZE_FORMAT " bytes) while waiting for %s 0x%02x",
++          cmd, payload_len, self->cmd_awaiting_ack ? "ACK of" : "reply", self->cmd_byte);
++  gdx_start_receive (self, timeout);
++}
++
+ static void
+ gdx_message_received (FpiDeviceGoodix5201 *self)
+ {
+@@ -397,32 +419,35 @@ gdx_message_received (FpiDeviceGoodix5201 *self)
+ 
+   if (self->cmd_awaiting_ack)
+     {
+-      if (data[0] != GDX_CMD_ACK || payload_len < 1 || payload[0] != self->cmd_byte)
++      if (data[0] == GDX_CMD_ACK && payload_len >= 1 && payload[0] == self->cmd_byte)
+         {
+-          gdx_cmd_done (self, NULL, 0,
+-                        fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
+-                                                  "Expected ACK for 0x%02x, got 0x%02x",
+-                                                  self->cmd_byte, data[0]));
++          self->cmd_awaiting_ack = FALSE;
++          if (self->cmd_want_reply)
++            {
++              gdx_start_receive (self, self->cmd_reply_timeout);
++              return;
++            }
++
++          gdx_cmd_done (self, NULL, 0, NULL);
+           return;
+         }
+ 
+-      self->cmd_awaiting_ack = FALSE;
+-      if (self->cmd_want_reply)
++      /* The reply overtook its ACK; the late ACK is skipped as stray input
++       * by the next command. */
++      if (self->cmd_want_reply && data[0] == self->cmd_byte)
+         {
+-          gdx_start_receive (self, self->cmd_reply_timeout);
++          self->cmd_awaiting_ack = FALSE;
++          gdx_cmd_done (self, payload, payload_len, NULL);
+           return;
+         }
+ 
+-      gdx_cmd_done (self, NULL, 0, NULL);
++      gdx_stray_message (self, data[0], payload_len, GDX_ACK_TIMEOUT);
+       return;
+     }
+ 
+   if (data[0] != self->cmd_byte)
+     {
+-      gdx_cmd_done (self, NULL, 0,
+-                    fpi_device_error_new_msg (FP_DEVICE_ERROR_PROTO,
+-                                              "Expected reply 0x%02x, got 0x%02x",
+-                                              self->cmd_byte, data[0]));
++      gdx_stray_message (self, data[0], payload_len, self->cmd_reply_timeout);
+       return;
+     }
+ 
+@@ -544,6 +569,7 @@ gdx_cmd (FpiDeviceGoodix5201 *self,
+   self->cmd_awaiting_ack = TRUE;
+   self->cmd_reply_timeout = reply_timeout;
+   self->cmd_callback = callback;
++  self->stray = 0;
+ 
+   g_byte_array_append (msg, header, sizeof (header));
+   if (len)
+-- 
+2.53.0
+

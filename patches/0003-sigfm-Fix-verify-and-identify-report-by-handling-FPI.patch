@@ -1,0 +1,51 @@
+From e8134eb7480aa703e79ff72a698d6835c1fe742c Mon Sep 17 00:00:00 2001
+From: local <local@localhost>
+Date: Wed, 14 Oct 2026 23:25:28 +0300
+Subject: [PATCH 3/3] sigfm: Fix verify and identify report by handling
+ FPI_PRINT_SIGFM
+
+---
+ libfprint/fp-print.c   | 3 +++
+ libfprint/fpi-device.c | 5 ++++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/libfprint/fp-print.c b/libfprint/fp-print.c
+index 2aab303..78a9448 100644
+--- a/libfprint/fp-print.c
++++ b/libfprint/fp-print.c
+@@ -629,6 +629,9 @@ fp_print_equal (FpPrint *self, FpPrint *other)
+ 
+       return TRUE;
+ 
++    case FPI_PRINT_SIGFM:
++      return self->prints == other->prints;
++
+     case FPI_PRINT_UNDEFINED:
+       g_assert_not_reached ();
+     }
+diff --git a/libfprint/fpi-device.c b/libfprint/fpi-device.c
+index 9500b3a..1be9a24 100644
+--- a/libfprint/fpi-device.c
++++ b/libfprint/fpi-device.c
+@@ -2171,6 +2171,7 @@ fpi_device_verify_report (FpDevice      *device,
+ 
+           if (print &&
+               fpi_print_get_type (print) != FPI_PRINT_NBIS &&
++              fpi_print_get_type (print) != FPI_PRINT_SIGFM &&
+               !fp_print_equal (print, data->match))
+             {
+               g_warning ("Driver reported a match providing a scanned print that is not matching it.");
+@@ -2270,7 +2271,9 @@ fpi_device_identify_report (FpDevice *device,
+     }
+   else
+     {
+-      if (match && print && fpi_print_get_type (print) != FPI_PRINT_NBIS &&
++      if (match && print &&
++          fpi_print_get_type (print) != FPI_PRINT_NBIS &&
++          fpi_print_get_type (print) != FPI_PRINT_SIGFM &&
+           !g_ptr_array_find_with_equal_func (data->gallery, print,
+                                              (GEqualFunc) fp_print_equal, NULL))
+         {
+-- 
+2.53.0
+

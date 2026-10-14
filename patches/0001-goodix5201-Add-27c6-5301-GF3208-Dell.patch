@@ -1,0 +1,70 @@
+From 1c59bbb29a00c06bfbf2ce4916d03bf5e60f44d4 Mon Sep 17 00:00:00 2001
+From: local <local@localhost>
+Date: Wed, 14 Oct 2026 23:10:55 +0300
+Subject: [PATCH 1/3] goodix5201: Add 27c6:5301 (GF3208, Dell)
+
+---
+ data/autosuspend.hwdb             | 2 +-
+ libfprint/drivers/goodix5201.c    | 6 +++++-
+ libfprint/fprint-list-udev-hwdb.c | 1 -
+ 3 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/data/autosuspend.hwdb b/data/autosuspend.hwdb
+index 56be9a7..ba7a1ff 100644
+--- a/data/autosuspend.hwdb
++++ b/data/autosuspend.hwdb
+@@ -218,6 +218,7 @@ usb:v10A5p9B24*
+ 
+ # Supported by libfprint driver goodix5201
+ usb:v27C6p5201*
++usb:v27C6p5301*
+  ID_AUTOSUSPEND=1
+  ID_PERSIST=0
+ 
+@@ -525,7 +526,6 @@ usb:v27C6p5117*
+ usb:v27C6p5120*
+ usb:v27C6p5125*
+ usb:v27C6p521D*
+-usb:v27C6p5301*
+ usb:v27C6p530C*
+ usb:v27C6p532D*
+ usb:v27C6p5335*
+diff --git a/libfprint/drivers/goodix5201.c b/libfprint/drivers/goodix5201.c
+index 798fd27..d19c9e4 100644
+--- a/libfprint/drivers/goodix5201.c
++++ b/libfprint/drivers/goodix5201.c
+@@ -1045,6 +1045,10 @@ dev_close (FpImageDevice *idev)
+ 
+ static const FpIdEntry id_table[] = {
+   { .vid = 0x27c6, .pid = 0x5201, },
++  /* GF3208 (e.g. Dell Inspiron 15 7577): same chip ID 0x2202a0, same HT32
++   * bridge, same wrapless protocol, firmware GF5288_HT_APP_10035 and the
++   * identical 256 byte configuration. Verified on real hardware. */
++  { .vid = 0x27c6, .pid = 0x5301, },
+   { .vid = 0,      .pid = 0, },
+ };
+ 
+@@ -1077,7 +1081,7 @@ fpi_device_goodix5201_class_init (FpiDeviceGoodix5201Class *klass)
+   FpImageDeviceClass *img_class = FP_IMAGE_DEVICE_CLASS (klass);
+ 
+   dev_class->id = "goodix5201";
+-  dev_class->full_name = "Goodix Fingerprint Sensor 27c6:5201";
++  dev_class->full_name = "Goodix Fingerprint Sensor 27c6:5201/5301";
+   dev_class->type = FP_DEVICE_TYPE_USB;
+   dev_class->id_table = id_table;
+   dev_class->scan_type = FP_SCAN_TYPE_PRESS;
+diff --git a/libfprint/fprint-list-udev-hwdb.c b/libfprint/fprint-list-udev-hwdb.c
+index ada8026..7aeeeb6 100644
+--- a/libfprint/fprint-list-udev-hwdb.c
++++ b/libfprint/fprint-list-udev-hwdb.c
+@@ -162,7 +162,6 @@ static const FpIdEntry allowlist_id_table[] = {
+   { .vid = 0x27c6, .pid = 0x5120 },
+   { .vid = 0x27c6, .pid = 0x5125 },
+   { .vid = 0x27c6, .pid = 0x521d },
+-  { .vid = 0x27c6, .pid = 0x5301 },
+   { .vid = 0x27c6, .pid = 0x530c },
+   { .vid = 0x27c6, .pid = 0x532d },
+   { .vid = 0x27c6, .pid = 0x5335 },
+-- 
+2.53.0
+
