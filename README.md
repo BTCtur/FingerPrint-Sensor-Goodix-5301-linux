@@ -47,7 +47,7 @@ Laptops confirmed working:
 The repository includes a pre-compiled 64-bit x86_64 library. To install:
 
 ```bash
-git clone https://github.com/<username>/FingerPrint-Sensor-Goodix-5301-linux.git
+git clone https://github.com/BTCtur/FingerPrint-Sensor-Goodix-5301-linux.git
 cd FingerPrint-Sensor-Goodix-5301-linux
 sudo ./install.sh
 ```
